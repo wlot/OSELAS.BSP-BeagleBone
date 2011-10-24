@@ -1,3 +1,7 @@
+2011-10-24	Juergen Beisert <jbe@pengutronix.de>
+
+		* BSP: using the current ptxdist-2011.10.1
+
 2011-01-28	Juergen Beisert <jbe@pengutronix.de>
 
 		* BSP: Continue development with GIT as the Revision Control
