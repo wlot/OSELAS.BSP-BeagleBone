@@ -1,3 +1,18 @@
+2011-11-16	Juergen Beisert <jbe@pengutronix.de>
+
+	* platform:
+		- release for ptxdist-2011.11.0
+		- release 2011.11.0
+
+2011-10-24	Juergen Beisert <jbe@pengutronix.de>
+
+	* platform:
+		- remove 2.6.32, its sooooo old
+		- Update 2.6.37
+		- Use pxtdist-2011.10.1 now
+		- Use OSELAS.Toolchain-2011.03.1 now
+		- support user mode network to connect to the QEMU machine
+
 2011-01-28	Juergen Beisert <jbe@pengutronix.de>
 
 	* platform: Testing with 2.6.32 and 2.6.37 kernel
