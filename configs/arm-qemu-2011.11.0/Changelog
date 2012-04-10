@@ -1,3 +1,7 @@
+2012-04-11	Bernhard Walle <bernhard@bwalle.de>
+
+	* platform: switch to OSELAS.Toolchain 2011.11
+
 2012-04-11	Juergen Beisert <jbe@pengutronix.de>
 
 	* platform: back to development
