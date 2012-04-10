@@ -1,3 +1,7 @@
+2012-04-11	Bernhard Walle <bernhard@bwalle.de>
+
+		* BSP: BSP: Switch to opkg
+
 2012-04-11	Juergen Beisert <jbe@pengutronix.de>
 
 		* BSP: back to development
