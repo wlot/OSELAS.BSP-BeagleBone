@@ -31,7 +31,7 @@ if [ ! -e "${PTXDIST_PLATFORMDIR}/images/hd.img" ]; then
 fi
 
 # the emulator to run
-QEMU_EXEC=qemu-system-${PTXCONF_ARCH_STRING}
+QEMU_EXEC=${PTXDIST_PLATFORMDIR}/sysroot-host/bin/qemu-system-${PTXCONF_ARCH_STRING}
 
 # disable this, if you want to have some graphics output
 QEMU_NOGRAPHIC=--nographic

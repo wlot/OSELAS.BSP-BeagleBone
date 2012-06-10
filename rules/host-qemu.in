@@ -1,0 +1,8 @@
+## SECTION=hosttools
+
+config HOST_QEMU
+	tristate
+	prompt "qemu"
+	select HOST_GLIB
+	help
+	  CPU/System emulator

@@ -30,13 +30,7 @@ if [ ! -e "${PTXDIST_PLATFORMDIR}/images/hd.img" ]; then
 fi
 
 # the emulator to run
-if test "${PTXCONF_ARCH_STRING}" = "i386"; then
-	ARCH_STRING="x86_64"
-else
-	ARCH_STRING="${PTXCONF_ARCH_STRING}"
-fi
-
-QEMU_EXEC=qemu-system-${ARCH_STRING}
+QEMU_EXEC=${PTXDIST_PLATFORMDIR}/sysroot-host/bin/emu-system-${PTXCONF_ARCH_STRING}
 
 # disable this, if you want to have some graphics output
 QEMU_NOGRAPHIC=--nographic
