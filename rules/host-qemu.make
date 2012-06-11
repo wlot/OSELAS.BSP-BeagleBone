@@ -33,6 +33,7 @@ HOST_QEMU_DIR		:= $(HOST_BUILDDIR)/$(HOST_QEMU)
 #
 HOST_QEMU_CONF_TOOL	:= autoconf
 HOST_QEMU_CONF_OPT	:= $(HOST_AUTOCONF) \
+	--extra-cflags="$(HOST_CPPFLAGS)" \
 	--target-list=arm-softmmu,i386-softmmu
 
 # vim: syntax=make
