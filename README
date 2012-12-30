@@ -1,11 +1,11 @@
-OSELAS.BSP-Pengutronix-Generic-2011.11.0:
+OSELAS.BSP-Pengutronix-Generic-2012.12.0:
 
 This PTXdist[1] based project combines two reference board support packages:
 
 - ARM based "versatilepb"
 - X86 generic PC
 
-They are intended to show new users of ptxdist how to prepare and build all
+They are intended to show new users of PTXdist how to prepare and build all
 required components for an embedded device.
 
 For further information please read the following documents (part of this
