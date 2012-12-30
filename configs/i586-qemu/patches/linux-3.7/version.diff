@@ -2,16 +2,16 @@
  Makefile |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: linux-2.6.37/Makefile
+Index: linux-3.7/Makefile
 ===================================================================
---- linux-2.6.37.orig/Makefile
-+++ linux-2.6.37/Makefile
+--- linux-3.7.orig/Makefile
++++ linux-3.7/Makefile
 @@ -1,7 +1,7 @@
- VERSION = 2
- PATCHLEVEL = 6
- SUBLEVEL = 37
+ VERSION = 3
+ PATCHLEVEL = 7
+ SUBLEVEL = 1
 -EXTRAVERSION =
 +EXTRAVERSION = -pengutronix
- NAME = Flesh-Eating Bats with Fangs
+ NAME = Terrified Chipmunk
  
  # *DOCUMENTATION*

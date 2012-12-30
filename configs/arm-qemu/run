@@ -1,7 +1,6 @@
 #!/bin/bash
-#
-# For some information about how to work with qemu for ARM, please
-# refer: http://fedoraproject.org/wiki/Architectures/ARM/HowToQemu
+
+SCRIPTDIR=$(cd $(dirname $0); pwd)
 
 #
 # we need information about the platform
@@ -20,6 +19,9 @@ else
 	PTXDIST_PLATFORMDIR="."
 fi
 
+# sorce it again, to really get valuable variables
+source selected_platformconfig
+
 if [ ! -e "${PTXDIST_PLATFORMDIR}/images/linuximage" ]; then
 	echo "error: run 'ptxdist go' first"
 	exit 1
@@ -31,20 +33,35 @@ if [ ! -e "${PTXDIST_PLATFORMDIR}/images/hd.img" ]; then
 fi
 
 # the emulator to run
-QEMU_EXEC=${PTXDIST_PLATFORMDIR}/sysroot-host/bin/qemu-system-${PTXCONF_ARCH_STRING}
+if test "${PTXCONF_ARCH_STRING}" = "i386"; then
+	ARCH_STRING="x86_64"
+	# Machine to emulate
+	QEMU_MACHINE=pc
+else
+	ARCH_STRING="${PTXCONF_ARCH_STRING}"
+	# Machine to emulate
+	QEMU_MACHINE=${PTXCONF_PLATFORM}
+fi
+
+# we should prefer the QEMU which comes with this BSP
+QEMU_EXEC_PATH="${PTXCONF_SYSROOT_HOST}/bin"
+
+# the QEMU to be used
+QEMU_EXEC=qemu-system-${ARCH_STRING}
+
+if [ -x "${QEMU_EXEC_PATH}/${QEMU_EXEC}" ]; then
+	QEMU_EXEC="${QEMU_EXEC_PATH}/${QEMU_EXEC}"
+fi
 
 # disable this, if you want to have some graphics output
 QEMU_NOGRAPHIC=--nographic
-
-# Machine to emulate: The default kernel is prepared to run on "versatile pb"
-QEMU_MACHINE=${PTXCONF_PLATFORM}
 
 #
 # 'user mode' network related settings
 #
 PLATFORM_IP="10.0.2.7"
 
-# the port a 'telned' would connect to (in the emulated sysem)
+# the port a 'telned' would connect to (in the emulated system)
 TELNET_INTERNAL_PORT=23
 # port QEMU opens at the host side to give access to the ${TELNET_INTERNAL_PORT}
 TELNET_EXTERNAL_PORT=4444

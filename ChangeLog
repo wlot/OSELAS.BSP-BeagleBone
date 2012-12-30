@@ -1,3 +1,7 @@
+2012-12-30	Juergen Beisert <jbe@pengutronix.de>
+
+		* Platforms: use 2012.12.0 platform releases
+
 2012-12-20	Juergen Beisert <jbe@pengutronix.de>
 
 		* BSP: using the current ptxdist-2012.12.0
