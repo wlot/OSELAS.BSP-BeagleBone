@@ -2,6 +2,7 @@
 
 		* BSP/platforms: back to development
 		* BSP:  using the current ptxdist-2013.11.0
+		* BSP: remove local QEMU rules. PTXdist has its own now
 
 2012-12-30	Juergen Beisert <jbe@pengutronix.de>
 
