@@ -33,15 +33,8 @@ if [ ! -e "${PTXDIST_PLATFORMDIR}/images/hd.img" ]; then
 fi
 
 # the emulator to run
-if test "${PTXCONF_ARCH_STRING}" = "i386"; then
-	ARCH_STRING="x86_64"
-	# Machine to emulate
-	QEMU_MACHINE=pc
-else
-	ARCH_STRING="${PTXCONF_ARCH_STRING}"
-	# Machine to emulate
-	QEMU_MACHINE=${PTXCONF_PLATFORM}
-fi
+ARCH_STRING="i386"
+QEMU_MACHINE=pc
 
 # we should prefer the QEMU which comes with this BSP
 QEMU_EXEC_PATH="${PTXCONF_SYSROOT_HOST}/bin"
