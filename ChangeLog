@@ -1,6 +1,8 @@
 2014-05-20	Juergen Borleis <jbe@pengutronix.de>
 
-		* BSP: back to development
+		* BSP:
+			- back to development
+			- adapt it to ptxdist-2014.05.0
 
 2013-12-11	Juergen Beisert <jbe@pengutronix.de>
 

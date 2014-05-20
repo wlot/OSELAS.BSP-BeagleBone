@@ -1,10 +1,7 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# PTXdist 2013.11.0
+# PTXdist 2014.05.0-00001-g5506d0f90cf4
 #
-PTXCONF_PLATFORMCONFIG_VERSION="2013.11.0"
-PTXCONF_RUNTIME=y
-PTXCONF_BUILDTIME=y
 PTXCONF__platformconfig_MAGIC__=y
 
 #
@@ -20,6 +17,9 @@ PTXCONF__platformconfig_MAGIC__=y
 #
 PTXCONF_PLATFORM="versatilepb"
 PTXCONF_PLATFORM_VERSION="-master"
+PTXCONF_RUNTIME=y
+PTXCONF_BUILDTIME=y
+PTXCONF_PLATFORMCONFIG_VERSION="2014.05.0-00001-g5506d0f90cf4"
 
 #
 # architecture                  
@@ -127,7 +127,6 @@ PTXCONF_KERNEL_CONFIG="kernelconfig-${PTXCONF_KERNEL_VERSION}"
 # Development features
 #
 PTXCONF_KERNEL_EXTRA_MAKEVARS=""
-# PTXCONF_HOST_DTC is not set
 # PTXCONF_DTC is not set
 
 #
@@ -153,11 +152,6 @@ PTXCONF_BAREBOX_ARCH_STRING="arm"
 # PTXCONF_U_BOOT_V2 is not set
 # PTXCONF_U_BOOT is not set
 # PTXCONF_X_LOAD is not set
-
-#
-# flash                         
-#
-PTXCONF_FLASH_BLOCKSIZE="128k"
 
 #
 # image creation options        
@@ -202,10 +196,13 @@ PTXCONF_IMAGE_KERNEL_INSTALL_EARLY=y
 # new image creation options    
 #
 # PTXCONF_IMAGE_BOOT_MLO is not set
+# PTXCONF_IMAGE_HDIMG is not set
 # PTXCONF_IMAGE_ROOT_CPIO_GZ is not set
 # PTXCONF_IMAGE_ROOT_CPIO is not set
 # PTXCONF_IMAGE_ROOT_EXT is not set
 # PTXCONF_IMAGE_ROOT_TGZ is not set
+# PTXCONF_IMAGE_ROOT_UBI is not set
+# PTXCONF_IMAGE_ROOT_UBIFS is not set
 # PTXCONF_HOST_BZIP2 is not set
 # PTXCONF_HOST_CDRKIT is not set
 # PTXCONF_HOST_CMAKE is not set
