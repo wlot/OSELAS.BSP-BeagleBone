@@ -1,3 +1,9 @@
+2014-07-11	Juergen Borleis <jbe@pengutronix.de>
+
+		* BSP: using the current ptxdist-2014.07.0
+		* Platforms: use 2014.07.0 platform releases
+		* BSP: the 2014.07.0 release
+
 2014-05-20	Juergen Borleis <jbe@pengutronix.de>
 
 		* BSP:
