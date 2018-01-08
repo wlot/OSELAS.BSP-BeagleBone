@@ -46,7 +46,7 @@ config UTIL_LINUX_NG_AGETTY
 config UTIL_LINUX_NG_LOGIN
 	bool
 	prompt "login"
-        select LINUX_PAM
+	select LINUX_PAM
 	help
 	  Login utility.
 
