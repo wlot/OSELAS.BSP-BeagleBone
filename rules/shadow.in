@@ -1,0 +1,25 @@
+## SECTION=shell_and_console
+
+menuconfig SHADOW
+	tristate
+	prompt "shadow"
+	help
+	  The Shadow package contains programs for handling passwords in a secure way.
+
+if SHADOW
+
+config SHADOW_PASSWD
+	bool
+	prompt "passwd"
+	select LINUX_PAM
+	help
+	  Tool for change password for a user or group account.
+
+config SHADOW_LOGIN
+	bool
+	prompt "login"
+	select LINUX_PAM
+	help
+	  Tool for system to let users sing on.
+
+endif
