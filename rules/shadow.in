@@ -8,18 +8,198 @@ menuconfig SHADOW
 
 if SHADOW
 
-config SHADOW_PASSWD
+config SHADOW_CHAGE
 	bool
-	prompt "passwd"
-	select LINUX_PAM
+	prompt "chage"
 	help
-	  Tool for change password for a user or group account.
+	  Tool to change the maximum number of days between obligatory password changes.
+
+config SHADOW_CHFN
+	bool
+	prompt "chfn"
+	help
+	  Tool to change a user's full name and other information.
+
+config SHADOW_CHGPASSWD
+	bool
+	prompt "chgpasswd"
+	help
+	  Tool to update group passwords in batch mode.
+
+config SHADOW_CHPASSWD
+	bool
+	prompt "chpasswd"
+	help
+	  Tool to update user passwords in batch mode.
+
+config SHADOW_CHSH
+	bool
+	prompt "chsh"
+	help
+	  Tool to change a user's default login shell.
+
+config SHADOW_EXPIRY
+	bool
+	prompt "expiry"
+	help
+	  Tool that checks and enforces the current password expiration policy.
+
+config SHADOW_FAILLOG
+	bool
+	prompt "faillog"
+	help
+	  Tool that is used to examine the log of login failures, to set a maximum number of failures before an account is blocked, or to reset the failure count.
+
+config SHADOW_GPASSWD
+	bool
+	prompt "gpasswd"
+	help
+	  Tool that is used to add and delete members and administrators to groups.
+
+config SHADOW_GROUPADD
+	bool
+	prompt "groupadd"
+	help
+	  Tool that creates a group with the given name.
+
+config SHADOW_GROUPDEL
+	bool
+	prompt "groupdel"
+	help
+	  Tool that deletes the group with the given name.
+
+config SHADOW_GROUPMEMS
+	bool
+	prompt "groupmems"
+	help
+	  Tool that allows a user to administer his/her own group membership list without the requirement of super user privileges.
+
+config SHADOW_GROUPMOD
+	bool
+	prompt "groupmod"
+	help
+	  Tool that is used to modify the given group's name or GID.
+
+config SHADOW_GRPCK
+	bool
+	prompt "grpck"
+	help
+	  Tool that verifies the integrity of the group files /etc/group and /etc/gshadow.
+
+config SHADOW_GRPCONV
+	bool
+	prompt "grpconv"
+	help
+	  Tool that creates or updates the shadow group file from the normal group file.
+
+config SHADOW_GRPUNCONV
+	bool
+	prompt "grpunconv"
+	help
+	  Tool that updates /etc/group from /etc/gshadow and then deletes the latter.
+
+config SHADOW_LASTLOG
+	bool
+	prompt "lastlog"
+	help
+	  Tool that reports the most recent login of all users or of a given user.
 
 config SHADOW_LOGIN
 	bool
 	prompt "login"
 	select LINUX_PAM
 	help
-	  Tool for system to let users sing on.
+	  Tool is used to system to let users sing on.
+
+config SHADOW_LOGOUTD
+	bool
+	prompt "logoutd"
+	help
+	  Daemon that is used to enforce restrictions on log-on time and ports.
+
+config SHADOW_NEWGRP
+	bool
+	prompt "newgrp"
+	help
+	  Tool that is used to change the current GID during a login session.
+
+config SHADOW_NEWUSERS
+	bool
+	prompt "newusers"
+	help
+	  Tool that s used to create or update an entire series of user accounts.
+
+config SHADOW_NOLOGIN
+	bool
+	prompt "nologin"
+	help
+	  Tool that displays a message that an account is not available. Designed to be used as the default shell for accounts that have been disabled.
+
+config SHADOW_PASSWD
+	bool
+	prompt "passwd"
+	select LINUX_PAM
+	help
+	  Tool that is used to change password for a user or group account.
+
+config SHADOW_PWCK
+	bool
+	prompt "pwck"
+	help
+	  Tool that verifies the integrity of the password files /etc/passwd and /etc/shadow
+
+config SHADOW_PWCONV
+	bool
+	prompt "pwconv"
+	help
+	  Tool that creates or updates the shadow password file from the normal password file.
+
+config SHADOW_PWUNCONV
+	bool
+	prompt "pwunconv"
+	help
+	  Tool that updates /etc/passwd from /etc/shadow and then deletes the latter.
+
+config SHADOW_SG
+	bool
+	prompt "sg"
+	help
+	  Tool that executes a given command while the user's GID is set to that of the given group.
+
+config SHADOW_SU
+	bool
+	prompt "su"
+	help
+	  Tool that runs a shell with substitute user and group IDs.
+
+config SHADOW_USERADD
+	bool
+	prompt "useradd"
+	help
+	  Tool that creates a new user with the given name, or updates the default new-user information.
+
+config SHADOW_USERDEL
+	bool
+	prompt "userdel"
+	help
+	  Tool that deletes the given user account.
+
+config SHADOW_USERMOD
+	bool
+	prompt "usermod"
+	help
+	  Tool that is used to modify the given user's login name, User Identification (UID), shell, initial group, home directory, etc.
+
+config SHADOW_VIGR
+	bool
+	prompt "vigr"
+	help
+	  Tool that edits the /etc/group or /etc/gshadow files.
+
+config SHADOW_VIPW
+	bool
+	prompt "vipw"
+	help
+	  Tool that edits the /etc/passwd or /etc/shadow files.
 
 endif
