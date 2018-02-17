@@ -42,8 +42,7 @@ BAREBOX_AM335X_CONF_OPT := $(call barebox-opts, BAREBOX_AM335X)
 BAREBOX_AM335X_MAKE_ENV := $(BAREBOX_AM335X_CONF_ENV)
 BAREBOX_AM335X_MAKE_OPT := $(BAREBOX_AM335X_CONF_OPT)
 
-BAREBOX_AM335X_IMAGES := images/barebox-am33xx-afi-gf.img \
-			images/barebox-am33xx-beaglebone.img
+BAREBOX_AM335X_IMAGES := images/barebox-am33xx-beaglebone.img
 BAREBOX_AM335X_IMAGES := $(addprefix $(BAREBOX_AM335X_DIR)/,$(BAREBOX_AM335X_IMAGES))
 
 ifdef PTXCONF_BAREBOX_AM335X
