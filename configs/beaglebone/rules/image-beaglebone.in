@@ -6,8 +6,8 @@ config IMAGE_BEAGLEBONE
 	select HOST_DOSFSTOOLS
 	select HOST_MTOOLS
 	select IMAGE_ROOT_EXT
-	select BAREBOX_AM335X
-	select BAREBOX_AM335X_MLO
+	select BAREBOX
+	select BAREBOX_MLO
 	prompt "Generate images/beaglebone.hdimg"
 	help
 	  FIXME
