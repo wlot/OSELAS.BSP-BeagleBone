@@ -9,12 +9,12 @@ if [ -f "${oftree}" ]; then
 	global.bootm.oftree="$oftree"
 fi
 
-nfsroot="/srv/nfs"
-bootargs-ip
+nfsroot="${eth0.serverip}/root"
+ip_args=dhcp
 
 initramfs="${path}/${global.user}-initramfs-${global.hostname}"
 if [ -f "${initramfs}" ]; then
 	global.bootm.initrd="$initramfs"
 else
-	global.linux.bootargs.dyn.root="rw root=/dev/nfs nfsroot=$nfsroot,v4,tcp"
+	global.linux.bootargs.dyn.root="rw root=/dev/nfs nfsroot=$nfsroot,v3,tcp,port=2049,mountport=2049 ip=${ip_args}"
 fi
