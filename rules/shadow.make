@@ -89,8 +89,9 @@ SHADOW_CONF_OPT := \
 	$(CROSS_AUTOCONF_USR) \
 	--bindir=/usr/bin \
 	--sbindir=/usr/sbin \
-    --sysconfdir=/etc \
-    --with-group-name-max-length=32
+	--sysconfdir=/etc \
+	--with-group-name-max-length=32 \
+	--without-libpam
 
 # ----------------------------------------------------------------------------
 # Target-Install

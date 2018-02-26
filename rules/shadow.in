@@ -107,7 +107,6 @@ config SHADOW_LASTLOG
 config SHADOW_LOGIN
 	bool
 	prompt "login"
-	select LINUX_PAM
 	help
 	  Tool is used to system to let users sing on.
 
@@ -138,7 +137,6 @@ config SHADOW_NOLOGIN
 config SHADOW_PASSWD
 	bool
 	prompt "passwd"
-	select LINUX_PAM
 	help
 	  Tool that is used to change password for a user or group account.
 
