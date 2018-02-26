@@ -9,7 +9,7 @@ if [ -f "${oftree}" ]; then
 	global.bootm.oftree="$oftree"
 fi
 
-nfsroot="${eth0.serverip}/root"
+nfsroot="${eth0.serverip}:/root"
 ip_args=dhcp
 
 initramfs="${path}/${global.user}-initramfs-${global.hostname}"
