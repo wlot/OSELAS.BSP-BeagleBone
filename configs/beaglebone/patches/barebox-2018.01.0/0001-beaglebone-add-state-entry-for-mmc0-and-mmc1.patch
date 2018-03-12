@@ -72,8 +72,8 @@ index f79a6bc8a..9a546eb37 100644
 +		compatible = "fixed-partitions";
 +		#size-cells = <1>;
 +		#address-cells = <1>;
-+		backend_state_mmc1: mmc1_state@0x2000000 {
-+			reg = <0x2000000 0x100000>; /* 32MB offset (FAT boot partition)*/
++		backend_state_mmc1: mmc1_state@0xb00000 {
++			reg = <0xb00000 0x100000>; /* 11MB offset (FAT boot partition)*/
 +			label = "bootstate";
 +		};
 +	};
@@ -90,8 +90,8 @@ index f79a6bc8a..9a546eb37 100644
 +		compatible = "fixed-partitions";
 +		#size-cells = <1>;
 +		#address-cells = <1>;
-+		backend_state_mmc2: mmc2_state@0x2000000 {
-+			reg = <0x2000000 0x100000>; /* 32MB offset (FAT boot partition)*/
++		backend_state_mmc2: mmc2_state@0xb00000 {
++			reg = <0xb00000 0x100000>; /* 11MB offset (FAT boot partition)*/
 +			label = "bootstate";
 +		};
 +	};
