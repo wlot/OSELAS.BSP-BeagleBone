@@ -1,0 +1,348 @@
+From eb9585c26d473ff790d6cf61eae94d7331c0c1a4 Mon Sep 17 00:00:00 2001
+From: Enrico Jorns <ejo@pengutronix.de>
+Date: Mon, 10 Jul 2017 19:01:52 +0200
+Subject: [PATCH 22/44] src: support for converting bundle images for casync
+ support
+
+With the introduction of supporting casync index files as images for
+RAUC bundles, we need a proper way to generate them.
+
+Requirements such as having only a single casync store for all images
+contained in the bundle make it inappropriate to create the casync
+images separately from RAUC (e.g. in a distro build tool).
+
+Instead, we decided to have a simple way of converting classical RAUC
+bundles, i.e. those that contain only convetional file system images or
+archvies to bundles containing casync index files as 'images' and have a
+separate properly named casync chunk store.
+
+  rauc convert classic-bundle.raucb casync-bundle.raucb
+
+This will generate two things:
+
+ * casync-bundle.raucb:  the bundle file containing casync index files
+ * csaync-bundle.castr/: the chunk store directory containing all chunks
+   for all index images contained in the bundle
+
+To allow the RAUC image/slot type matching to be performed for casync
+index files, too, we also define the convention to name the casync index
+artifacts as <imgname>.<imgtype>.caibx for indexed images and
+<imgname>.caidx for indexed file system trees (not supported, yet).
+
+Signed-off-by: Enrico Jorns <ejo@pengutronix.de>
+---
+ include/bundle.h |   9 +++
+ src/bundle.c     | 174 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/main.c       |  56 ++++++++++++++++++
+ 3 files changed, 239 insertions(+)
+
+diff --git a/include/bundle.h b/include/bundle.h
+index 1b9ac8d..d43296b 100644
+--- a/include/bundle.h
++++ b/include/bundle.h
+@@ -97,6 +97,15 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
+  */
+ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error);
+ 
++/**
++ * Create casync bundle.
++ *
++ * @param bundle RaucBundle struct as returned by check_bundle()
++ * @param outbundle output location for converted casync bundle
++ * @param error Return location for a GError
++ */
++gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error);
++
+ /**
+  * Mount a bundle.
+  *
+diff --git a/src/bundle.c b/src/bundle.c
+index 5388ac8..ccf583a 100644
+--- a/src/bundle.c
++++ b/src/bundle.c
+@@ -2,6 +2,7 @@
+ 
+ #include <gio/gio.h>
+ #include <glib/gstdio.h>
++#include <string.h>
+ 
+ #include "bundle.h"
+ #include "context.h"
+@@ -108,6 +109,46 @@ out:
+ 	return res;
+ }
+ 
++static gboolean casync_make(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
++	GSubprocess *sproc = NULL;
++	GError *ierror = NULL;
++	gboolean res = FALSE;
++	GPtrArray *args = g_ptr_array_new_full(5, g_free);
++
++	g_ptr_array_add(args, g_strdup("casync"));
++	g_ptr_array_add(args, g_strdup("make"));
++	g_ptr_array_add(args, g_strdup(idxpath));
++	g_ptr_array_add(args, g_strdup(contentpath));
++	if (store) {
++		g_ptr_array_add(args, g_strdup("--store"));
++		g_ptr_array_add(args, g_strdup(store));
++	}
++	g_ptr_array_add(args, NULL);
++
++	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
++				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
++	if (sproc == NULL) {
++		g_propagate_prefixed_error(
++				error,
++				ierror,
++				"Failed to start casync: ");
++		goto out;
++	}
++
++	res = g_subprocess_wait_check(sproc, NULL, &ierror);
++	if (!res) {
++		g_propagate_prefixed_error(
++				error,
++				ierror,
++				"Failed to run casync: ");
++		goto out;
++	}
++
++	res = TRUE;
++out:
++	return res;
++}
++
+ static gboolean output_stream_write_uint64_all(GOutputStream *stream,
+                                               guint64 data,
+                                               GCancellable *cancellable,
+@@ -351,6 +392,139 @@ out:
+ 	return res;
+ }
+ 
++static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
++	GError *ierror = NULL;
++	gboolean res = FALSE;
++	gchar *tmpdir = NULL, *contentdir = NULL, *mfpath = NULL, *storepath = NULL, *basepath = NULL;
++	RaucManifest *manifest = NULL;
++
++	g_return_val_if_fail(bundle, FALSE);
++	g_return_val_if_fail(outbundle, FALSE);
++	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
++
++	basepath = g_strndup(outbundle, strlen(outbundle) - 6);
++	storepath = g_strconcat(basepath, ".castr", NULL);
++	g_free(basepath);
++
++	/* Assure bundle destination path doe not already exist */
++	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
++		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "Destination bundle '%s' already exists", outbundle);
++		res = FALSE;
++		goto out;
++	}
++
++	if (g_file_test(storepath, G_FILE_TEST_EXISTS)) {
++		g_warning("Store path '%s' already exists, appending new chunks", outbundle);
++	}
++
++	/* Set up tmp dir for conversion */
++	tmpdir = g_dir_make_tmp("rauc-casync-XXXXXX", &ierror);
++	if (tmpdir == NULL) {
++		g_propagate_prefixed_error(error, ierror,
++				"Failed to create tmp dir: ");
++		res = FALSE;
++		goto out;
++	}
++
++	contentdir = g_build_filename(tmpdir, "content", NULL);
++	mfpath = g_build_filename(contentdir, "manifest.raucm", NULL);
++
++	/* Extract input bundle to content/ dir */
++	res = extract_bundle(bundle, contentdir, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	/* Load manifest from content/ dir */
++	res = load_manifest_file(mfpath, &manifest, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	/* Iterate over each image and convert */
++	for (GList *l = manifest->images; l != NULL; l = l->next) {
++		RaucImage *image = l->data;
++		gchar *imgpath = NULL, *idxfile = NULL, *idxpath = NULL;
++
++		imgpath = g_build_filename(contentdir, image->filename, NULL);
++		idxfile = g_strconcat(image->filename, ".caibx", NULL);
++		idxpath = g_build_filename(contentdir, idxfile, NULL);
++
++		/* Rewrite manifest filename */
++		g_free(image->filename);
++		image->filename = idxfile;
++
++		g_message("Converting %s to %s", image->filename, idxfile);
++
++		/* Generate index for content */
++		res = casync_make(idxpath, imgpath, storepath, &ierror);
++		if (!res) {
++			g_free(idxpath);
++			g_free(imgpath);
++
++			g_propagate_error(error, ierror);
++			goto out;
++		}
++
++		/* Remove original file */
++		if (g_remove(imgpath) != 0) {
++			g_warning("Failed removing %s", imgpath);
++		}
++
++		g_free(idxpath);
++		g_free(imgpath);
++	}
++
++	/* Rewrite manifest to content/ dir */
++	res = save_manifest_file(mfpath, manifest, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	res = create_bundle(outbundle, contentdir, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	res = TRUE;
++out:
++	/* Remove temporary bundle creation directory */
++	if (tmpdir)
++		rm_tree(tmpdir, NULL);
++
++	g_clear_pointer(&manifest, free_manifest);
++	g_clear_pointer(&tmpdir, g_free);
++	g_clear_pointer(&contentdir, g_free);
++	g_clear_pointer(&mfpath, g_free);
++	g_clear_pointer(&storepath, g_free);
++	return res;
++}
++
++gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
++	GError *ierror = NULL;
++	gboolean res = FALSE;
++
++	res = convert_to_casync_bundle(bundle, outbundle, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	res = sign_bundle(outbundle, &ierror);
++	if (!res) {
++		g_propagate_error(error, ierror);
++		goto out;
++	}
++
++	res = TRUE;
++out:
++	return res;
++}
++
+ static gboolean is_remote_scheme(const gchar *scheme) {
+ 	return (g_strcmp0(scheme, "http") == 0) ||
+ 		(g_strcmp0(scheme, "https") == 0) ||
+diff --git a/src/main.c b/src/main.c
+index 504345b..d40b117 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -356,6 +356,59 @@ out:
+ 	return TRUE;
+ }
+ 
++static gboolean convert_start(int argc, char **argv)
++{
++	RaucBundle *bundle = NULL;
++	GError *ierror = NULL;
++	g_debug("convert start");
++
++	if (r_context()->certpath == NULL ||
++	    r_context()->keypath == NULL) {
++		g_printerr("Cert and key files must be provided\n");
++		r_exit_status = 1;
++		goto out;
++	}
++
++	if (argc < 3) {
++		g_printerr("An input bundle must be provided\n");
++		r_exit_status = 1;
++		goto out;
++	}
++
++	if (argc < 4) {
++		g_printerr("An output bundle name must be provided\n");
++		r_exit_status = 1;
++		goto out;
++	}
++
++	if (argc > 4) {
++		g_printerr("Excess argument: %s\n", argv[4]);
++		goto out;
++	}
++
++	g_debug("input bundle: %s", argv[2]);
++	g_debug("output bundle: %s", argv[3]);
++
++	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
++		g_printerr("%s\n", ierror->message);
++		g_clear_error(&ierror);
++		r_exit_status = 1;
++		goto out;
++	}
++
++	if (!create_casync_bundle(bundle, argv[3], &ierror)) {
++		g_printerr("Failed to create bundle: %s\n", ierror->message);
++		g_clear_error(&ierror);
++		r_exit_status = 1;
++		goto out;
++	}
++
++	g_print("Bundle written to %s\n", argv[3]);
++
++out:
++	return TRUE;
++}
++
+ static gboolean checksum_start(int argc, char **argv)
+ {
+ 	GError *error = NULL;
+@@ -1106,6 +1159,7 @@ typedef enum  {
+ 	BUNDLE,
+ 	RESIGN,
+ 	EXTRACT,
++	CONVERT,
+ 	CHECKSUM,
+ 	STATUS,
+ 	INFO,
+@@ -1173,6 +1227,7 @@ static void cmdline_handler(int argc, char **argv)
+ 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
+ 		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, NULL, FALSE},
+ 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
++		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, NULL, FALSE},
+ 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
+ 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
+ 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
+@@ -1197,6 +1252,7 @@ static void cmdline_handler(int argc, char **argv)
+ 			"  bundle\tCreate a bundle\n" \
+ 			"  resign\tResign an already signed bundle\n" \
+ 			"  extract\tExtract the bundle content\n" \
++			"  convert\tConvert classic to casync bundle\n" \
+ 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
+ 			"  install\tInstall a bundle\n" \
+ 			"  info\t\tShow file information\n" \
+-- 
+2.14.1
+

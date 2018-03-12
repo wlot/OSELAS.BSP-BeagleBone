@@ -1,0 +1,290 @@
+From 1c671fc47d6a58f11b9e0e0c1b788b7ad6d0596e Mon Sep 17 00:00:00 2001
+From: Jan Luebbe <jlu@pengutronix.de>
+Date: Fri, 12 Jan 2018 09:25:19 +0100
+Subject: [PATCH 19/44] test: add tests for slot status storage and API
+
+Signed-off-by: Jan Luebbe <jlu@pengutronix.de>
+---
+ Makefile.am           |  6 +++--
+ configure.ac          |  1 +
+ test/config_file.c    | 72 ++++++++++++++++++++++++++++++++++++++++++++++++---
+ test/install.c        | 13 ++++++++++
+ test/service.c        | 39 ++++++++++++++++++++++++++++
+ test/test-global.conf | 42 ++++++++++++++++++++++++++++++
+ 6 files changed, 167 insertions(+), 6 deletions(-)
+ create mode 100644 test/test-global.conf
+
+diff --git a/Makefile.am b/Makefile.am
+index 811df2d..527ba5e 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -134,7 +134,8 @@ EXTRA_DIST += tap-t \
+ 	      test/rauc.t \
+ 	      test/rootfs.raucs \
+ 	      test/sharness.sh \
+-	      test/test.conf
++	      test/test.conf \
++	      test/test-global.conf
+ 
+ librauctest_la_SOURCES = \
+ 	test/common.c \
+@@ -219,4 +220,5 @@ CLEANFILES = $(gdbus_installer_generated) \
+ 	     test/grubenv.test \
+ 	     test/random.dat \
+ 	     test/test-temp.conf \
+-	     test/system.raucs
++	     test/system.raucs \
++	     test/global.raucs
+diff --git a/configure.ac b/configure.ac
+index 553d1a2..2d6f940 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -107,6 +107,7 @@ AC_SUBST(DBUS_SYSTEMSERVICEDIR)
+ # Checks for library functions.
+ 
+ AC_CONFIG_LINKS([test/test.conf:test/test.conf])
++AC_CONFIG_LINKS([test/test-global.conf:test/test-global.conf])
+ AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
+ AC_CONFIG_LINKS([test/bin/efibootmgr:test/bin/efibootmgr])
+ AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])
+diff --git a/test/config_file.c b/test/config_file.c
+index b40d934..1ab8f54 100644
+--- a/test/config_file.c
++++ b/test/config_file.c
+@@ -17,6 +17,20 @@ static void config_file_fixture_set_up(ConfigFileFixture *fixture,
+ {
+ 	fixture->tmpdir = g_dir_make_tmp("rauc-conf_file-XXXXXX", NULL);
+ 	g_assert_nonnull(fixture->tmpdir);
++
++	r_context_conf()->configpath = g_strdup("test/test.conf");
++	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
++	r_context();
++}
++
++static void config_file_fixture_set_up_global(ConfigFileFixture *fixture,
++		gconstpointer user_data)
++{
++	fixture->tmpdir = g_dir_make_tmp("rauc-conf_file-XXXXXX", NULL);
++	g_assert_nonnull(fixture->tmpdir);
++
++	r_context_conf()->configpath = g_strdup("test/test-global.conf");
++	r_context();
+ }
+ 
+ static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
+@@ -524,16 +538,63 @@ static void config_file_system_serial(void)
+ 	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
+ }
+ 
++static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
++		gconstpointer user_data)
++{
++	GHashTable *slots = r_context()->config->slots;
++	GHashTableIter iter;
++	GError *ierror = NULL;
++	RaucSlot *slot;
++
++	g_assert_nonnull(r_context()->config->statusfile_path);
++
++	/* Set status for all slots */
++	g_hash_table_iter_init(&iter, slots);
++	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
++		if (slot->status)
++			free_slot_status(slot->status);
++
++		g_debug("Set default status for slot %s.", slot->name);
++		slot->status = g_new0(RaucSlotStatus, 1);
++		slot->status->status = g_strdup("ok");
++		slot->status->checksum.type = G_CHECKSUM_SHA256;
++		slot->status->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
++	}
++
++	/* Save status for all slots */
++	g_hash_table_iter_init(&iter, slots);
++	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
++		save_slot_status(slot, &ierror);
++		g_assert_no_error(ierror);
++	}
++
++	/* Clear status for all slots */
++	g_hash_table_iter_init(&iter, slots);
++	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
++		if (slot->status)
++			free_slot_status(slot->status);
++
++		slot->status = NULL;
++	}
++
++	/* Check status for all slots */
++	g_hash_table_iter_init(&iter, slots);
++	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
++		load_slot_status(slot);
++		g_assert_nonnull(slot->status);
++		g_assert_cmpstr(slot->status->status, ==, "ok");
++		g_assert_cmpint(slot->status->checksum.type, ==, G_CHECKSUM_SHA256);
++		g_assert_cmpstr(slot->status->checksum.digest, ==,
++				"dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
++	}
++}
++
+ int main(int argc, char *argv[])
+ {
+ 	setlocale(LC_ALL, "C");
+ 
+ 	g_test_init(&argc, &argv, NULL);
+ 
+-	r_context_conf()->configpath = g_strdup("test/test.conf");
+-	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
+-	r_context();
+-
+ 	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
+ 		   config_file_fixture_set_up, config_file_full_config,
+ 		   config_file_fixture_tear_down);
+@@ -567,6 +628,9 @@ int main(int argc, char *argv[])
+ 	g_test_add("/config-file/statusfile-missing", ConfigFileFixture, NULL,
+ 		   config_file_fixture_set_up, config_file_statusfile_missing,
+ 		   config_file_fixture_tear_down);
++	g_test_add("/config-file/global-slot-staus", ConfigFileFixture, NULL,
++		   config_file_fixture_set_up_global, config_file_test_global_slot_status,
++		   config_file_fixture_tear_down);
+ 
+ 	return g_test_run ();
+ }
+diff --git a/test/install.c b/test/install.c
+index ed21fc1..ba38d0c 100644
+--- a/test/install.c
++++ b/test/install.c
+@@ -24,6 +24,15 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
+ 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
+ }
+ 
++static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture,
++		gconstpointer user_data) {
++
++	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
++
++	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf");
++	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
++}
++
+ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
+ 		gconstpointer user_data) {
+ 	const gchar *manifest_file = "\
+@@ -1243,6 +1252,10 @@ int main(int argc, char *argv[])
+ 		   install_fixture_set_up_bundle, install_test_bundle,
+ 		   install_fixture_tear_down);
+ 
++	g_test_add("/install/bundle/central-status", InstallFixture, NULL,
++		   install_fixture_set_up_bundle_central_status, install_test_bundle,
++		   install_fixture_tear_down);
++
+ 	g_test_add("/install/network", InstallFixture, NULL,
+ 		   install_fixture_set_up_network, install_test_network,
+ 		   install_fixture_tear_down);
+diff --git a/test/service.c b/test/service.c
+index 2aa79a1..1d0f12a 100644
+--- a/test/service.c
++++ b/test/service.c
+@@ -241,6 +241,41 @@ out:
+ 	g_free(version);
+ }
+ 
++static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user_data)
++{
++	GError *error = NULL;
++	GVariant *slot_status_array = NULL;
++
++	if (!ENABLE_SERVICE) {
++	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
++	    return;
++	}
++
++	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
++						       G_DBUS_PROXY_FLAGS_NONE,
++						       "de.pengutronix.rauc",
++						       "/",
++						       NULL,
++						       NULL);
++
++	if (installer == NULL) {
++		g_error("failed to install proxy");
++		goto out;
++	}
++
++	r_installer_call_get_slot_status_sync(installer,
++					      &slot_status_array,
++					      NULL,
++					      &error);
++	g_assert_no_error(error);
++	g_assert_nonnull(slot_status_array);
++	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 5);
++
++out:
++	g_clear_pointer(&installer, g_object_unref);
++	g_variant_unref(slot_status_array);
++}
++
+ int main(int argc, char *argv[])
+ {
+ 	setlocale(LC_ALL, "C");
+@@ -255,5 +290,9 @@ int main(int argc, char *argv[])
+ 		   service_info_fixture_set_up, service_test_info,
+ 		   service_fixture_tear_down);
+ 
++	g_test_add("/service/slot-status", ServiceFixture, NULL,
++		   service_info_fixture_set_up, service_test_slot_status,
++		   service_fixture_tear_down);
++
+ 	return g_test_run();
+ }
+diff --git a/test/test-global.conf b/test/test-global.conf
+new file mode 100644
+index 0000000..04defc7
+--- /dev/null
++++ b/test/test-global.conf
+@@ -0,0 +1,42 @@
++# testsuite system configuration
++
++[system]
++compatible=Test Config
++bootloader=grub
++grubenv=grubenv.test
++statusfile=global.raucs
++
++[handlers]
++system-info=bin/systeminfo.sh
++pre-install=bin/preinstall.sh
++post-install=bin/postinstall.sh
++
++[keyring]
++path=openssl-ca/dev-ca.pem
++
++[slot.rescue.0]
++device=images/rescue-0
++type=ext4
++bootname=factory0
++readonly=true
++
++[slot.rootfs.0]
++device=images/rootfs-0
++type=ext4
++bootname=system0
++
++[slot.rootfs.1]
++device=images/rootfs-1
++type=ext4
++bootname=system1
++
++[slot.appfs.0]
++device=images/appfs-0
++type=ext4
++parent=rootfs.0
++
++[slot.appfs.1]
++device=images/appfs-1
++type=ext4
++parent=rootfs.1
++
+-- 
+2.14.1
+

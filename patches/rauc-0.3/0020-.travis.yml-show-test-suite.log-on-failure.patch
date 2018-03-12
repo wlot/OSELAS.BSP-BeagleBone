@@ -1,0 +1,22 @@
+From 16bb196de38275c7d2cfc2e414e43652302e86bb Mon Sep 17 00:00:00 2001
+From: Jan Luebbe <jlu@pengutronix.de>
+Date: Mon, 15 Jan 2018 10:37:40 +0100
+Subject: [PATCH 20/44] .travis.yml: show test-suite.log on failure
+
+Signed-off-by: Jan Luebbe <jlu@pengutronix.de>
+---
+ .travis.yml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.travis.yml b/.travis.yml
+index 891f9c0..5f425b5 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -45,3 +45,4 @@ after_success:
+   - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
+ after_failure:
+   - cat test/*.log
++  - cat test-suite.log
+-- 
+2.14.1
+

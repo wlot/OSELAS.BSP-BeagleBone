@@ -1,0 +1,156 @@
+From 57f6fa84b8f982a69c74e7341a6aba8c7531c76d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulrich=20=C3=96lmann?= <u.oelmann@pengutronix.de>
+Date: Tue, 5 Sep 2017 18:40:51 +0200
+Subject: [PATCH 15/44] install/config_file: store install information in
+ status file
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Ulrich Ölmann <u.oelmann@pengutronix.de>
+---
+ docs/reference.rst    |  6 ++++++
+ include/config_file.h |  2 ++
+ src/config_file.c     | 27 +++++++++++++++++++++++++++
+ src/install.c         |  8 ++++++++
+ 4 files changed, 43 insertions(+)
+
+diff --git a/docs/reference.rst b/docs/reference.rst
+index 01acdcd..f07171e 100644
+--- a/docs/reference.rst
++++ b/docs/reference.rst
+@@ -296,6 +296,8 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
+   status=ok
+   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
+   size=419430400
++  installed.timestamp=2017-03-27T09:51:13Z
++  installed.count=3
+ 
+ For a description of ``sha256`` and ``size`` keys see :ref:`this
+ <image.slot-class-section>` part of the section :ref:`Manifest
+@@ -309,6 +311,10 @@ and ``bundle.build`` are copies of the respective manifest properties.
+ More information can be found in this :ref:`subsection <sec-manifest-update>` of
+ section :ref:`Manifest <sec_ref_manifest>`.
+ 
++RAUC also stores the point in time of installing the image to the slot in
++``installed.timestamp`` as well as the number of updates so far in
++``installed.count``.
++
+ 
+ Command Line Tool
+ -----------------
+diff --git a/include/config_file.h b/include/config_file.h
+index 821c08f..9d701a2 100644
+--- a/include/config_file.h
++++ b/include/config_file.h
+@@ -67,6 +67,8 @@ typedef struct {
+ 	gchar *bundle_build;
+ 	gchar *status;
+ 	RaucChecksum checksum;
++	gchar *installed_timestamp;
++	guint32 installed_count;
+ } RaucSlotStatus;
+ 
+ typedef struct _RaucSlot {
+diff --git a/src/config_file.c b/src/config_file.c
+index 10cf981..38fd47a 100644
+--- a/src/config_file.c
++++ b/src/config_file.c
+@@ -402,7 +402,9 @@ void free_config(RaucConfig *config) {
+ }
+ 
+ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
++	GError *ierror = NULL;
+ 	gchar *digest;
++	guint64 count;
+ 
+ 	if (!g_key_file_has_group(key_file, group))
+ 		g_debug("Group %s not found in key file.", group);
+@@ -413,6 +415,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group,
+ 	g_free(slotstatus->bundle_build);
+ 	g_free(slotstatus->status);
+ 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
++	g_free(slotstatus->installed_timestamp);
+ 
+ 	slotstatus->bundle_compatible = g_key_file_get_string(key_file, group, "bundle.compatible", NULL);
+ 	slotstatus->bundle_version = g_key_file_get_string(key_file, group, "bundle.version", NULL);
+@@ -426,6 +429,21 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group,
+ 		slotstatus->checksum.digest = digest;
+ 		slotstatus->checksum.size = g_key_file_get_uint64(key_file, group, "size", NULL);
+ 	}
++
++	slotstatus->installed_timestamp = g_key_file_get_string(key_file, group, "installed.timestamp", NULL);
++	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
++	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
++		g_message("Value of key \"installed.count\" in group [%s] "
++			"is no valid unsigned integer - setting to zero.", group);
++		count = 0;
++	}
++	g_clear_error(&ierror);
++	if (count > G_MAXUINT32) {
++		g_message("Value of key \"installed.count\" in group [%s] "
++			"is greater than G_MAXUINT32 - setting to zero.", group);
++		count = 0;
++	}
++	slotstatus->installed_count = count;
+ }
+ 
+ static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string) {
+@@ -450,6 +468,14 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group,
+ 		g_key_file_remove_key(key_file, group, "size", NULL);
+ 	}
+ 
++	if (slotstatus->installed_timestamp) {
++		g_key_file_set_string(key_file, group, "installed.timestamp", slotstatus->installed_timestamp);
++		g_key_file_set_uint64(key_file, group, "installed.count", slotstatus->installed_count);
++	} else {
++		g_key_file_remove_key(key_file, group, "installed.timestamp", NULL);
++		g_key_file_remove_key(key_file, group, "installed.count", NULL);
++	}
++
+ 	return;
+ }
+ 
+@@ -691,5 +717,6 @@ void free_slot_status(RaucSlotStatus *slotstatus) {
+ 	g_free(slotstatus->bundle_build);
+ 	g_free(slotstatus->status);
+ 	g_free(slotstatus->checksum.digest);
++	g_free(slotstatus->installed_timestamp);
+ 	g_free(slotstatus);
+ }
+diff --git a/src/install.c b/src/install.c
+index 8d9815c..c690791 100644
+--- a/src/install.c
++++ b/src/install.c
+@@ -817,6 +817,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 		RaucSlot *dest_slot;
+ 		img_to_slot_handler update_handler = NULL;
+ 		RaucSlotStatus *slot_state = NULL;
++		GDateTime *now;
+ 
+ 		mfimage = l->data;
+ 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
+@@ -930,6 +931,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 		g_free(slot_state->bundle_build);
+ 		g_free(slot_state->status);
+ 		g_free(slot_state->checksum.digest);
++		g_free(slot_state->installed_timestamp);
++
++		now = g_date_time_new_now_utc();
+ 
+ 		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+ 		slot_state->bundle_version = g_strdup(manifest->update_version);
+@@ -939,6 +943,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 		slot_state->checksum.type = mfimage->checksum.type;
+ 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+ 		slot_state->checksum.size = mfimage->checksum.size;
++		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
++		slot_state->installed_count++;
++
++		g_date_time_unref(now);
+ 
+ 		r_context_end_step("copy_image", TRUE);
+ 
+-- 
+2.14.1
+

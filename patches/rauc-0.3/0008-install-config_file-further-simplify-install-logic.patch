@@ -1,0 +1,173 @@
+From 0484946acb8309ada9b26534a0fd1dc8da95c570 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulrich=20=C3=96lmann?= <u.oelmann@pengutronix.de>
+Date: Thu, 31 Aug 2017 11:53:24 +0200
+Subject: [PATCH 08/44] install/config_file: further simplify install logic
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This again allows to get rid of one layer of case differentiation in the install
+logic while staying equivalent.
+
+In particular looking at the upcoming introduction of an overall statusfile
+these checks which are specific to a slot internal statusfile have to be moved
+into the respective subfunctions.
+
+Signed-off-by: Ulrich Ölmann <u.oelmann@pengutronix.de>
+---
+ include/config_file.h |  2 +-
+ src/config_file.c     |  8 ++++++
+ src/install.c         | 75 +++++++++++++++++++++++----------------------------
+ 3 files changed, 42 insertions(+), 43 deletions(-)
+
+diff --git a/include/config_file.h b/include/config_file.h
+index b10cb44..79b0206 100644
+--- a/include/config_file.h
++++ b/include/config_file.h
+@@ -180,7 +180,7 @@ void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state);
+  * @param mfimage image that was just installed
+  * @param error return location for a GError, or NULL
+  *
+- * @return TRUE if saving status succeeded, FALSE otherwise
++ * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
+  */
+ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
+ 
+diff --git a/src/config_file.c b/src/config_file.c
+index 08d9b5b..8c8d84f 100644
+--- a/src/config_file.c
++++ b/src/config_file.c
+@@ -465,6 +465,9 @@ void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state) {
+ 
+ 	*slot_state = g_new0(RaucSlotStatus, 1);
+ 
++	if (!is_slot_mountable(dest_slot))
++		return;
++
+ 	/* read slot status */
+ 	g_message("mounting slot %s", dest_slot->device);
+ 	res = r_mount_slot(dest_slot, &ierror);
+@@ -500,6 +503,11 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
+ 	gchar *slotstatuspath = NULL;
+ 	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
+ 
++	if (!is_slot_mountable(dest_slot)) {
++		res = TRUE;
++		goto free;
++	}
++
+ 	g_debug("mounting slot %s", dest_slot->device);
+ 	res = r_mount_slot(dest_slot, &ierror);
+ 	if (!res) {
+diff --git a/src/install.c b/src/install.c
+index a5c1636..4bea909 100644
+--- a/src/install.c
++++ b/src/install.c
+@@ -816,6 +816,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 	for (GList *l = install_images; l != NULL; l = l->next) {
+ 		RaucSlot *dest_slot;
+ 		img_to_slot_handler update_handler = NULL;
++		RaucSlotStatus *slot_state = NULL;
+ 
+ 		mfimage = l->data;
+ 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
+@@ -867,44 +868,40 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 
+ 		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
+ 
+-		if (is_slot_mountable(dest_slot)) {
+-			RaucSlotStatus *slot_state = NULL;
++		load_slot_status(dest_slot, &slot_state);
+ 
+-			load_slot_status(dest_slot, &slot_state);
+-
+-			/* In case we failed unmounting while reading status
+-			 * file, abort here */
+-			if (dest_slot->mount_point) {
+-				res = FALSE;
+-				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+-						"Slot '%s' still mounted", dest_slot->device);
+-				r_context_end_step("check_slot", FALSE);
+-
+-				g_clear_pointer(&slot_state, free_slot_status);
+-				goto out;
+-			}
+-
+-			/* skip if slot is up-to-date */
+-			if (!dest_slot->ignore_checksum && g_strcmp0(mfimage->checksum.digest, slot_state->checksum.digest) == 0) {
+-				install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
+-				g_message("Skipping update for correct image %s", mfimage->filename);
+-				r_context_end_step("check_slot", TRUE);
++		/* In case we failed unmounting while reading status
++		 * file, abort here */
++		if (dest_slot->mount_point) {
++			res = FALSE;
++			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
++					"Slot '%s' still mounted", dest_slot->device);
++			r_context_end_step("check_slot", FALSE);
+ 
+-				/* Dummy step to indicate slot was skipped */
+-				r_context_begin_step("skip_image", "Copying image skipped", 0);
+-				r_context_end_step("skip_image", TRUE);
++			g_clear_pointer(&slot_state, free_slot_status);
++			goto out;
++		}
+ 
+-				g_clear_pointer(&slot_state, free_slot_status);
+-				goto image_out;
+-			}
++		/* skip if slot is up-to-date */
++		if (!dest_slot->ignore_checksum && g_strcmp0(mfimage->checksum.digest, slot_state->checksum.digest) == 0) {
++			install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
++			g_message("Skipping update for correct image %s", mfimage->filename);
++			r_context_end_step("check_slot", TRUE);
+ 
+-			g_free(slot_state->status);
+-			slot_state->status = g_strdup("update");
++			/* Dummy step to indicate slot was skipped */
++			r_context_begin_step("skip_image", "Copying image skipped", 0);
++			r_context_end_step("skip_image", TRUE);
+ 
+-			g_message("Slot needs to be updated with %s", mfimage->filename);
+ 			g_clear_pointer(&slot_state, free_slot_status);
++			goto image_out;
+ 		}
+ 
++		g_free(slot_state->status);
++		slot_state->status = g_strdup("update");
++
++		g_message("Slot needs to be updated with %s", mfimage->filename);
++		g_clear_pointer(&slot_state, free_slot_status);
++
+ 		r_context_end_step("check_slot", TRUE);
+ 
+ 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
+@@ -931,19 +928,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
+ 
+ 		r_context_end_step("copy_image", TRUE);
+ 
+-		if (is_slot_mountable(dest_slot)) {
+-			install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
+-			res = save_slot_status(dest_slot, mfimage, &ierror);
+-			if (!res) {
+-				g_propagate_prefixed_error(
+-						error,
+-						ierror,
+-						"Error while writing status file: ");
+-
+-				goto out;
+-			}
++		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
++		res = save_slot_status(dest_slot, mfimage, &ierror);
++		if (!res) {
++			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
++			goto out;
+ 		}
+-		
++
+ image_out:
+ 
+ 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
+-- 
+2.14.1
+

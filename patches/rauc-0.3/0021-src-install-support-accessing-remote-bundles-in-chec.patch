@@ -1,0 +1,164 @@
+From d28416dd745d5c9b4c8886fb46366d7f7bff910d Mon Sep 17 00:00:00 2001
+From: Enrico Jorns <ejo@pengutronix.de>
+Date: Wed, 12 Jul 2017 18:05:20 +0200
+Subject: [PATCH 21/44] src/install: support accessing remote bundles in
+ check_bundle()
+
+This patch enables parsing and handling of remote bundle locations, i.e.
+prefixed by an URI scheme such as 'http://' or 'https://', as arguments
+for the RAUC install and info.
+
+At the moment, this is limited to bundle sizes of 8 MB as it is not
+intended to be used for donwloading full-sized conventional bundles
+containing disk images, yet.
+
+The check_bundle() method will parse the URI scheme and download the
+bundle to a temporary location that will be cleaned up when calling
+free_bundle() on the returned RaucBundle structure.
+
+The origin of the original bundle will be saved in newly introduced
+`origpath` member of struct RaucBundle. This will also allow detecting
+and properly handling temporary stored bundles in other parts of RAUC.
+
+Signed-off-by: Enrico Jorns <ejo@pengutronix.de>
+---
+ include/bundle.h |  1 +
+ src/bundle.c     | 51 +++++++++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 46 insertions(+), 6 deletions(-)
+
+diff --git a/include/bundle.h b/include/bundle.h
+index eac28c9..1b9ac8d 100644
+--- a/include/bundle.h
++++ b/include/bundle.h
+@@ -13,6 +13,7 @@ typedef enum {
+ 
+ typedef struct {
+ 	gchar *path;
++	gchar *origpath;
+ 	gsize size;
+ 	gchar *mount_point;
+ 	STACK_OF(X509) *verified_chain;
+diff --git a/src/bundle.c b/src/bundle.c
+index b98612b..5388ac8 100644
+--- a/src/bundle.c
++++ b/src/bundle.c
+@@ -7,6 +7,11 @@
+ #include "context.h"
+ #include "mount.h"
+ #include "signature.h"
++#include "utils.h"
++#include "network.h"
++
++/* Maximum downloadable bundle size (8MB) */
++#define BUNDLE_DL_MAX_SIZE 8*1024*1024
+ 
+ GQuark
+ r_bundle_error_quark (void)
+@@ -346,6 +351,13 @@ out:
+ 	return res;
+ }
+ 
++static gboolean is_remote_scheme(const gchar *scheme) {
++	return (g_strcmp0(scheme, "http") == 0) ||
++		(g_strcmp0(scheme, "https") == 0) ||
++		(g_strcmp0(scheme, "sftp") == 0) ||
++		(g_strcmp0(scheme, "ftp") == 0);
++}
++
+ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
+ 	GError *ierror = NULL;
+ 	GBytes *sig = NULL;
+@@ -355,27 +367,49 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
+ 	goffset offset;
+ 	gboolean res = FALSE;
+ 	RaucBundle *ibundle = g_new0(RaucBundle, 1);
++	gchar *bundlescheme = NULL;
+ 
+ 	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
+ 
+-	ibundle->path = g_strdup(bundlename);
+-
+ 	r_context_begin_step("check_bundle", "Checking bundle", verify);
+ 
++	/* Download Bundle to temporary location if remote URI is given */
++	bundlescheme = g_uri_parse_scheme(bundlename);
++	if (is_remote_scheme(bundlescheme)) {
++#if ENABLE_NETWORK
++		ibundle->origpath = g_strdup(bundlename);
++		ibundle->path = g_build_filename(g_get_tmp_dir(), "_download.raucb", NULL);
++
++		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
++		res = download_file(ibundle->path, ibundle->origpath, BUNDLE_DL_MAX_SIZE, &ierror);
++		if (!res) {
++			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
++			goto out;
++		}
++		g_debug("Downloaded temp bundle to %s", ibundle->path);
++#else
++		g_warning("Mounting remote bundle not supported, recompile with --enable-network");
++#endif
++	} else {
++		ibundle->path = g_strdup(bundlename);
++	}
++
+ 	if (verify && !r_context()->config->keyring_path) {
+ 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
++		res = FALSE;
+ 		goto out;
+ 	}
+ 
+-	g_message("Reading bundle: %s", bundlename);
++	g_message("Reading bundle: %s", ibundle->path);
+ 
+-	bundlefile = g_file_new_for_path(bundlename);
++	bundlefile = g_file_new_for_path(ibundle->path);
+ 	bundlestream = g_file_read(bundlefile, NULL, &ierror);
+ 	if (bundlestream == NULL) {
+ 		g_propagate_prefixed_error(
+ 				error,
+ 				ierror,
+ 				"Failed to open bundle for reading: ");
++		res = FALSE;
+ 		goto out;
+ 	}
+ 
+@@ -452,7 +486,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
+ 
+ 		g_message("Verifying bundle... ");
+ 		/* the squashfs image size is in offset */
+-		res = cms_verify_file(bundlename, sig, offset, &cms, &store, &ierror);
++		res = cms_verify_file(ibundle->path, sig, offset, &cms, &store, &ierror);
+ 		if (!res) {
+ 			g_propagate_error(error, ierror);
+ 			goto out;
+@@ -520,7 +554,7 @@ out:
+ }
+ 
+ gboolean mount_bundle(RaucBundle *bundle, GError **error) {
+-	gchar* mount_point = NULL;
++	gchar *mount_point = NULL;
+ 	GError *ierror = NULL;
+ 	gboolean res = FALSE;
+ 
+@@ -553,6 +587,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error) {
+ 
+ 	res = TRUE;
+ out:
++
+ 	return res;
+ }
+ 
+@@ -582,6 +617,10 @@ out:
+ void free_bundle(RaucBundle *bundle) {
+ 	g_return_if_fail(bundle);
+ 
++	/* In case of a temporary donwload artifact, remove it. */
++	if (bundle->origpath)
++		g_remove(bundle->path);
++
+ 	g_free(bundle->path);
+ 	g_free(bundle->mount_point);
+ 	if (bundle->verified_chain)
+-- 
+2.14.1
+

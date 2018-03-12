@@ -1,0 +1,22 @@
+From 0686dc7e31881f27358e0f072e99b929802679b8 Mon Sep 17 00:00:00 2001
+From: Andreas Schmidt <mail@schmidt-andreas.de>
+Date: Sun, 11 Mar 2018 16:25:13 +0100
+Subject: [PATCH 43/44] gitignore: ignore cscope files
+
+Signed-off-by: Andreas Schmidt <mail@schmidt-andreas.de>
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index 02efa74..d959ad7 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -33,3 +33,4 @@ stamp-h1
+ *.trs
+ *.xz
+ *.zip
++cscope*
+-- 
+2.14.1
+

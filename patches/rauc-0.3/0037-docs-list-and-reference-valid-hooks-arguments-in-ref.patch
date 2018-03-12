@@ -1,0 +1,61 @@
+From 38b8801ac458724a999302278b5da5887cf23a5e Mon Sep 17 00:00:00 2001
+From: Enrico Jorns <ejo@pengutronix.de>
+Date: Fri, 23 Feb 2018 10:55:28 +0100
+Subject: [PATCH 37/44] docs: list and reference valid 'hooks' arguments in
+ reference.rst
+
+Signed-off-by: Enrico Jorns <ejo@pengutronix.de>
+---
+ docs/reference.rst | 6 ++++++
+ docs/using.rst     | 4 ++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/docs/reference.rst b/docs/reference.rst
+index 72d06e5..2af2aac 100644
+--- a/docs/reference.rst
++++ b/docs/reference.rst
+@@ -248,6 +248,9 @@ A valid manifest file must have the file extension ``.raucm``.
+ 
+ ``hooks``
+   List of hooks enabled for this bundle.
++  See :ref:`sec-install-hooks` for more details.
++
++  Valid items are: ``install-check``
+ 
+ .. _sec-manifest-handler:
+ 
+@@ -278,6 +281,9 @@ A valid manifest file must have the file extension ``.raucm``.
+ 
+ ``hooks``
+   List of per-slot hooks enabled for this image.
++  See :ref:`sec-slot-hooks` for more details.
++
++  Valid items are: ``pre-install``, ``install``, ``post-install``
+ 
+ .. _slot-status:
+ 
+diff --git a/docs/using.rst b/docs/using.rst
+index 5af8432..43de600 100644
+--- a/docs/using.rst
++++ b/docs/using.rst
+@@ -280,6 +280,8 @@ In the following the available hooks are listed. Depending on their purpose,
+ some are image-specific, i.e. they will be executed for the installation of a
+ specific image only, while some other are global.
+ 
++.. _sec-install-hooks:
++
+ Install Hooks
+ ^^^^^^^^^^^^^
+ 
+@@ -337,6 +339,8 @@ the hook executable as the rejection reason message and provide it to the user:
+ 
+   exit 0
+ 
++.. _sec-slot-hooks:
++
+ Slot Hooks
+ ^^^^^^^^^^
+ 
+-- 
+2.14.1
+
