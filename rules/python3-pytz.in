@@ -1,0 +1,10 @@
+## SECTION=python3
+
+config PYTHON3_PYTZ
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "pytz"
+	help
+	  pytz brings the Olson tz database into Python.
+

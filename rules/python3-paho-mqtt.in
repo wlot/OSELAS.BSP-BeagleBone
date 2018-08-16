@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_PAHO_MQTT
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "paho-mqtt"
+	help
+	  MQTT version 3.1.1 client class.

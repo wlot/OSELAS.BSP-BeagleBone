@@ -1,0 +1,11 @@
+## SECTION=python3
+
+config PYTHON3_JINJA2
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	select PYTHON3_MARKUPSAFE
+	select PYTHON3_BABEL
+	prompt "Jinja2"
+	help
+	  Jinja2 is a template engine written in pure Python.

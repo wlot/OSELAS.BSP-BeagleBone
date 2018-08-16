@@ -1,0 +1,10 @@
+## SECTION=python3
+
+config PYTHON3_POST
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "post"
+	help
+	  Python3 module.
+

@@ -1,0 +1,11 @@
+## SECTION=python3
+
+config PYTHON3_QUERY_STRING
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	select PYTHON3_PUBLIC
+	prompt "query-string"
+	help
+	  Python3 module.
+

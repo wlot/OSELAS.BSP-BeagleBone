@@ -1,0 +1,11 @@
+## SECTION=python3
+
+config PYTHON3_USER_AGENTS
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "user-agents"
+	help
+	  A library to identify devices (phones, tablets)
+	  and their capabilities by parsing (browser/HTTP)
+	  user agent strings.

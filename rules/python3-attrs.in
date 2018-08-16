@@ -1,0 +1,12 @@
+## SECTION=python3
+
+config PYTHON3_ATTRS
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "attrs"
+	help
+	  attrs is the Python package that will bring
+	  back the joy of writing classes by relieving
+	  you from the drudgery of implementing object
+	  protocols (aka dunder methods).

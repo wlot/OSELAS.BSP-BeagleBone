@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_XMLTODICT
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "xmltodict"
+	help
+	  Makes working with XML feel like you are working with JSON.

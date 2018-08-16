@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_VOLUPTUOUS
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "voluptuous"
+	help
+	  Voluptuous is a Python data validation library.

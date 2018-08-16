@@ -1,0 +1,38 @@
+## SECTION=python3
+
+config PYTHON3_HOMEASSISTANT
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	select PYTHON3_AIOHTTP_CORS
+	select PYTHON3_ASTRAL
+	select PYTHON3_ASYNC_TIMEOUT
+	select PYTHON3_ATTRS
+	select PYTHON3_CERTIFI
+	select PYTHON3_COLORLOG
+	select PYTHON3_DISTRO
+	select PYTHON3_ENUM_COMPAT
+	select PYTHON3_JINJA2
+	select PYTHON3_NETDISCO
+	select PYTHON3_NETIFACES
+	select PYTHON3_MUTAGEN
+	select PYTHON3_PAHO_MQTT
+	select PYTHON3_PIP
+	select PYTHON3_PYTZ
+	select PYTHON3_PYYAML
+	select PYTHON3_REQUESTS
+	select PYTHON3_SQLALCHEMY
+	select PYTHON3_UA_PARSER
+	select PYTHON3_USER_AGENTS
+	select PYTHON3_VOLUPTUOUS
+	select PYTHON3_VOLUPTUOUS_SERIALIZE
+	select PYTHON3_WEBSOCKET_CLIENT
+	select PYTHON3_XMLTODICT
+	select PYTHON3_ZEROCONF
+	select PYTHON3_HOME_ASSISTANT_FRONTEND
+	prompt "homeassistant"
+	help
+	  Home Assistant is a home automation platform
+	  running on Python 3. It is able to track and
+	  control all devices at home and offer a platform
+	  for automating control.

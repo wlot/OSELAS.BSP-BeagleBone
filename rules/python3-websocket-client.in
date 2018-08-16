@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_WEBSOCKET_CLIENT
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "websocket-client"
+	help
+	  WebSocket client for python. hybi13 is supported.

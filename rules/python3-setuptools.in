@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_SETUPTOOLS
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "setuptools"
+	help
+	  Python3 module.

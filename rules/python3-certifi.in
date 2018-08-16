@@ -1,0 +1,13 @@
+## SECTION=python3
+
+config PYTHON3_CERTIFI
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "certifi"
+	help
+	  Certifi is a carefully curated collection of Root
+	  Certificates for validating the trustworthiness of
+	  SSL certificates while verifying the identity of
+	  TLS hosts. It has been extracted from the Requests
+	  project.

@@ -1,0 +1,10 @@
+## SECTION=python3
+
+config PYTHON3_MARKUPSAFE
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "MarkupSafe"
+	help
+	  Implements a unicode subclass
+	  that supports HTML strings.

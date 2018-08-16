@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_HOME_ASSISTANT_FRONTEND
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "home-assistant-frontend"
+	help
+	  Home Assistant frontend

@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_COLORLOG
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "colorlog"
+	help
+	  Log formatting with colors!

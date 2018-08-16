@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_MUTAGEN
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "mutagen"
+	help
+	  Read and write audio tags for many formats.

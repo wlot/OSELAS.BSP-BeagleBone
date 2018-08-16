@@ -1,0 +1,10 @@
+## SECTION=python3
+
+config PYTHON3_AIOHTTP_CORS
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	select PYTHON3_AIOHTTP
+	prompt "aiohttp_cors"
+	help
+	  http client/server for asyncio

@@ -1,0 +1,9 @@
+## SECTION=python3
+
+config PYTHON3_URLLIB3
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "urllib3"
+	help
+	  urllib3 is a powerful, sanity-friendly HTTP client for Python.

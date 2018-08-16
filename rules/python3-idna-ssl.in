@@ -1,0 +1,11 @@
+## SECTION=python3
+
+config PYTHON3_IDNA_SSL
+	tristate
+	select HOST_PYTHON3_SETUPTOOLS
+	select PYTHON3
+	prompt "idna-ssl"
+	help
+	  Support for the Internationalised Domain Names in
+	  Applications (IDNA) protocol as specified in RFC 5891.
+
