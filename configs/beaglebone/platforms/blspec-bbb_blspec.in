@@ -1,0 +1,5 @@
+## SECTION=blspec
+
+config BLSPEC_BBB_BLSPEC
+	tristate
+	prompt "/loader/entries/bbb_blspec.conf bootloader spec entry"

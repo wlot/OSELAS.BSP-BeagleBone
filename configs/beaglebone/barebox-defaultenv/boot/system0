@@ -1,8 +1,0 @@
-#!/bin/sh
-
-path=/mnt/mmc0.2
-
-global.bootm.image=${path}/boot/zImage
-global.bootm.oftree=${path}/boot/am335x-boneblack.dtb
-#global.bootm.initrd=<path to initrd>
-global.linux.bootargs.dyn.root="rw root=/dev/mmcblk0p3 rootfstype=ext4 rootwait"

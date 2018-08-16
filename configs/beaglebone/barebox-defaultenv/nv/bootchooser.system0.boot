@@ -1,1 +1,1 @@
-system0
+/mnt/mmc0.2/boot
